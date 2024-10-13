@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizontal Image Roulette</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #333;
+            position: relative; /* Для позиционирования стрелки */
+        }
+        #container {
+            position: relative;
+        }
+
+        #wheelCanvas {
+            display: block;
+            background-color: transparent;
+        }
+
+        #arrow {
+            position: absolute;
+            top: 0; /* Позиция стрелки */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 30px solid transparent;
+            border-right: 30px solid transparent;
+            border-top: 50px solid #333;
+            
+            z-index: 10; /* Стрелка над изображениями */
+        }
+    </style>
+</head>
+<body>
+    <div id="container" width="800" height="400">
+        <div id="arrow"></div> <!-- Стрелка -->
+        <canvas id="wheelCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script>
+        var wheelOptions = [
+            'options/Image1.jpg',
+            'options/Image2.jpg',
+            'options/Image3.jpg',
+            'options/Image4.jpg',
+            'options/Image5.jpg',
+            'options/Image6.jpg'
+        ];
+
+        var canvas = document.getElementById("wheelCanvas");
+        var ctx = canvas.getContext("2d");
+
+        var images = [];
+        var totalImages = wheelOptions.length;
+        var imageHeight = 350;  // Высота каждой картинки
+        var imageWidth = 0;  // Ширина каждой картинки (подстраиваемая)
+        var startPosition = 0;  // Стартовая позиция анимации
+        var isSpinning = false; // Состояние вращения
+
+        // Загружаем изображения
+        function loadImages(callback) {
+            let loadedImages = 0;
+            for (let i = 0; i < totalImages; i++) {
+                images[i] = new Image();
+                images[i].src = wheelOptions[i];
+                images[i].onload = function () {
+                    loadedImages++;
+                    if (loadedImages === totalImages) {
+                        imageWidth = images[0].width * (imageHeight / images[0].height);  // Подгоняем ширину под высоту
+                        callback();
+                    }
+                };
+            }
+        }
+
+        // Отрисовка рулетки
+        function drawWheel(offsetX) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);  // Очищаем canvas
+
+            for (let i = 0; i < totalImages; i++) {
+                let xPosition = (i * imageWidth + offsetX) % (imageWidth * totalImages);  // Рассчитываем позицию картинки
+                if (xPosition < -imageWidth) {
+                    xPosition += imageWidth * totalImages;  // Повторяем прокрутку
+                }
+                ctx.drawImage(images[i], xPosition, (canvas.height - imageHeight) / 2, imageWidth, imageHeight);  // Рисуем изображение по центру
+            }
+        }
+
+        // Анимация рулетки
+        function spinWheel() {
+            if (isSpinning) return; // Если уже вращается, ничего не делаем
+            isSpinning = true; // Устанавливаем флаг вращения
+
+            var randomEnd = Math.floor(Math.random() * totalImages); // Случайный результат
+            var targetOffset = -(imageWidth * randomEnd) + (canvas.width / 2) - (imageWidth / 2);  // Целевая позиция для остановки на случайной картинке
+
+            // Настраиваем анимацию
+            var duration = 5000; // Длительность анимации
+            var tween = new TWEEN.Tween({ x: startPosition })
+                .to({ x: targetOffset }, duration)  // Длительность анимации
+                .easing(TWEEN.Easing.Quintic.Out)
+                .onUpdate(function (object) {
+                    startPosition = object.x;  // Обновляем позицию
+                    drawWheel(startPosition);
+                })
+                .onComplete(function() {
+                    // Убедитесь, что рулетка останавливается точно на картинке
+                    drawWheel(targetOffset);
+                    // Анимация переворота карты
+                    animateFlip(randomEnd);
+                    isSpinning = false; // Сбрасываем флаг вращения
+                })
+                .start();
+        }
+
+        // Анимация переворота карты
+        function animateFlip(randomEnd) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);  // Очищаем canvas
+            var flipDuration = 500; // Длительность переворота
+            var scaleX = 1; // Масштаб по X (изначально)
+            var flipTween = new TWEEN.Tween({ scaleX: 1 })
+                .to({ scaleX: -1 }, flipDuration)
+                .easing(TWEEN.Easing.Quintic.Out)
+                .onUpdate(function(object) {
+                    scaleX = object.scaleX;
+                    // Рисуем переворот
+                    drawFlippedCard(randomEnd, scaleX);
+                })
+                .onComplete(function() {
+                    // Рисуем окончательную перевернутую карту
+                    drawWheel(-startPosition);
+                })
+                .start();
+        }
+
+        // Отрисовка перевернутой карты
+        function drawFlippedCard(index, scaleX) {
+            var cardX = (canvas.width / 2) - (imageWidth / 2);
+            var cardY = (canvas.height - imageHeight) / 2;
+
+            // Рисуем оригинальную карту
+            ctx.save();
+            ctx.translate(cardX + imageWidth / 2, cardY + imageHeight / 2); // Центрируем
+            ctx.scale(scaleX, 1); // Применяем масштаб по X
+            ctx.drawImage(images[index], -imageWidth / 2, -imageHeight / 2, imageWidth, imageHeight);  // Рисуем изображение по центру
+            ctx.restore();
+        }
+
+        // Функция анимации
+        function animate(time) {
+            requestAnimationFrame(animate);
+            TWEEN.update(time);
+        }
+
+        // Начинаем анимацию после загрузки картинок
+        loadImages(function () {
+            spinWheel();
+            animate();
+        });
+    </script>
+</body>
+</html>
