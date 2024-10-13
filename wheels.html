@@ -18,6 +18,8 @@
         }
         #container {
             position: relative;
+            width: 1000px; /* Ширина контейнера */
+            height: 500px; /* Высота контейнера */
         }
 
         #wheelCanvas {
@@ -27,23 +29,22 @@
 
         #arrow {
             position: absolute;
-            top: 0; /* Позиция стрелки */
+            top: -10px; /* Позиция стрелки, теперь на -10px от верхней части */
             left: 50%;
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 30px solid transparent;
-            border-right: 30px solid transparent;
-            border-top: 50px solid #333;
-            
+            border-left: 40px solid transparent; /* Ширина стрелки */
+            border-right: 40px solid transparent; /* Ширина стрелки */
+            border-top: 60px solid #333; /* Высота стрелки */
             z-index: 10; /* Стрелка над изображениями */
         }
     </style>
 </head>
 <body>
-    <div id="container" width="800" height="400">
+    <div id="container">
         <div id="arrow"></div> <!-- Стрелка -->
-        <canvas id="wheelCanvas" width="800" height="400"></canvas>
+        <canvas id="wheelCanvas" width="1000" height="500"></canvas> <!-- Размеры канваса -->
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
@@ -62,8 +63,10 @@
 
         var images = [];
         var totalImages = wheelOptions.length;
-        var imageHeight = 400;  // Высота каждой картинки
-        var imageWidth = 0;  // Ширина каждой картинки (подстраиваемая)
+        var originalHeight = 2007; // Исходная высота картинки
+        var originalWidth = 1140;   // Исходная ширина картинки
+        var imageHeight = originalHeight * 0.25; // Высота после уменьшения до 25%
+        var imageWidth = originalWidth * 0.25;   // Ширина после уменьшения до 25%
         var startPosition = 0;  // Стартовая позиция анимации
         var isSpinning = false; // Состояние вращения
 
@@ -76,7 +79,6 @@
                 images[i].onload = function () {
                     loadedImages++;
                     if (loadedImages === totalImages) {
-                        imageWidth = images[0].width * (imageHeight / images[0].height);  // Подгоняем ширину под высоту
                         callback();
                     }
                 };
@@ -116,44 +118,9 @@
                 .onComplete(function() {
                     // Убедитесь, что рулетка останавливается точно на картинке
                     drawWheel(targetOffset);
-                    // Анимация переворота карты
-                    animateFlip(randomEnd);
                     isSpinning = false; // Сбрасываем флаг вращения
                 })
                 .start();
-        }
-
-        // Анимация переворота карты
-        function animateFlip(randomEnd) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);  // Очищаем canvas
-            var flipDuration = 500; // Длительность переворота
-            var scaleX = 1; // Масштаб по X (изначально)
-            var flipTween = new TWEEN.Tween({ scaleX: 1 })
-                .to({ scaleX: -1 }, flipDuration)
-                .easing(TWEEN.Easing.Quintic.Out)
-                .onUpdate(function(object) {
-                    scaleX = object.scaleX;
-                    // Рисуем переворот
-                    drawFlippedCard(randomEnd, scaleX);
-                })
-                .onComplete(function() {
-                    // Рисуем окончательную перевернутую карту
-                    drawWheel(-startPosition);
-                })
-                .start();
-        }
-
-        // Отрисовка перевернутой карты
-        function drawFlippedCard(index, scaleX) {
-            var cardX = (canvas.width / 2) - (imageWidth / 2);
-            var cardY = (canvas.height - imageHeight) / 2;
-
-            // Рисуем оригинальную карту
-            ctx.save();
-            ctx.translate(cardX + imageWidth / 2, cardY + imageHeight / 2); // Центрируем
-            ctx.scale(scaleX, 1); // Применяем масштаб по X
-            ctx.drawImage(images[index], -imageWidth / 2, -imageHeight / 2, imageWidth, imageHeight);  // Рисуем изображение по центру
-            ctx.restore();
         }
 
         // Функция анимации
