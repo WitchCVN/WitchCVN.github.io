@@ -103,8 +103,12 @@
             if (isSpinning) return; // Если уже вращается, ничего не делаем
             isSpinning = true; // Устанавливаем флаг вращения
 
-            var randomEnd = Math.floor(Math.random() * totalImages); // Случайный результат
-            var targetOffset = -(imageWidth * randomEnd) + (canvas.width / 2) - (imageWidth / 2);  // Целевая позиция для остановки на случайной картинке
+            // Генерируем случайное начальное положение
+            var randomStart = Math.floor(Math.random() * totalImages); 
+            startPosition = -(imageWidth * randomStart); // Устанавливаем стартовую позицию
+
+            // Целевая позиция для остановки
+            var targetOffset = -(imageWidth * (totalImages + randomStart)); 
 
             // Настраиваем анимацию
             var duration = 15000; // Длительность анимации
